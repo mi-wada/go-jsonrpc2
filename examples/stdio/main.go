@@ -19,7 +19,7 @@ type SubtractParams struct {
 	B int `json:"b"`
 }
 
-func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
+func processRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
 		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
 		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
@@ -63,7 +63,7 @@ func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
 }
 
 func main() {
-	log.SetOutput(os.Stderr) // ログはstderrに出力
+	log.SetOutput(os.Stderr) // Set log output to stderr
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
@@ -76,8 +76,8 @@ func main() {
 			continue
 		}
 
-		var req jsonrpc2.Request
-		if err := json.Unmarshal([]byte(line), &req); err != nil {
+		req, err := jsonrpc2.UnmarshalRequest([]byte(line))
+		if err != nil {
 			parseErr := jsonrpc2.NewError(jsonrpc2.ParseError, "Parse error")
 			response := jsonrpc2.NewResponse(nil, jsonrpc2.WithError(*parseErr))
 			if encErr := encoder.Encode(response); encErr != nil {

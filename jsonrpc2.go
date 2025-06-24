@@ -18,6 +18,15 @@ type Request struct {
 	ID      any             `json:"id"`               // A unique identifier for the request.
 }
 
+// UnmarshalRequest unmarshals a [Request] from JSON data.
+func UnmarshalRequest(data []byte) (*Request, error) {
+	var req Request
+	if err := json.Unmarshal(data, &req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
+	}
+	return &req, nil
+}
+
 // NewRequest creates a new [Request].
 // If you want to set the Params or ID fields, use the [WithParams] or [WithID] options.
 func NewRequest(method string, opts ...NewRequestOption) (*Request, error) {
@@ -137,6 +146,11 @@ func WithData(data any) NewErrorOption {
 	return func(e *Error) {
 		e.Data = data
 	}
+}
+
+// Error implements the [Error] interface.
+func (e Error) Error() string {
+	return fmt.Sprintf("JSON-RPC Error %d: %s", e.Code, e.Message)
 }
 
 // Client is an interface for making JSON-RPC 2.0 requests.
