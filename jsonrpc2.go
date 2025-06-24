@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-const JSONRPC = "2.0" // JSONRPC is the version of the JSON-RPC protocol.
+const version = "2.0"
 
 // Request represents a JSON-RPC 2.0 request object.
 type Request struct {
@@ -30,7 +30,7 @@ func UnmarshalRequest(data []byte) (*Request, error) {
 // If you want to set the Params or ID fields, use the [WithParams] or [WithID] options.
 func NewRequest(method string, opts ...NewRequestOption) (*Request, error) {
 	req := &Request{
-		JSONRPC: JSONRPC,
+		JSONRPC: version,
 		Method:  method,
 	}
 	for _, opt := range opts {
@@ -79,7 +79,7 @@ type Response struct {
 // If you want to set the Result or Error fields, use the [WithResult] or [WithError] options.
 func NewResponse(id any, opts ...NewResponseOption) *Response {
 	resp := &Response{
-		JSONRPC: JSONRPC,
+		JSONRPC: version,
 		ID:      id,
 	}
 	for _, opt := range opts {
