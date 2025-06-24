@@ -155,8 +155,11 @@ func (e Error) Error() string {
 
 // Client is an interface for making JSON-RPC 2.0 requests.
 type Client interface {
-	// Call executes a JSON-RPC 2.0 request.
+	// Call sends a JSON-RPC 2.0 request and returns the response.
 	Call(ctx context.Context, req *Request) (*Response, error)
-	// Notify sends a JSON-RPC 2.0 notification request without expecting a response.
+	// CallBatch sends multiple JSON-RPC 2.0 requests at once and returns their responses.
+	// If a ParseError occurs, returns a single [Response]. Otherwise, returns a slice of [Response].
+	CallBatch(ctx context.Context, reqs []*Request) (any, error)
+	// Notify sends a JSON-RPC 2.0 notification (no response expected).
 	Notify(ctx context.Context, req *Request) error
 }

@@ -55,6 +55,39 @@ func (c *TCPClient) Call(ctx context.Context, req *Request) (*Response, error) {
 	return &rpcResp, nil
 }
 
+// CallBatch sends a batch of JSON-RPC requests over TCP and returns the responses.
+func (c *TCPClient) CallBatch(ctx context.Context, reqs []*Request) (any, error) {
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := c.conn.SetDeadline(deadline); err != nil {
+			return nil, fmt.Errorf("failed to set connection deadline: %w", err)
+		}
+	}
+
+	reqData, err := json.Marshal(reqs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal batch request: %w", err)
+	}
+
+	if _, err := c.conn.Write(append(reqData, '\n')); err != nil {
+		return nil, fmt.Errorf("failed to send batch request: %w", err)
+	}
+
+	scanner := bufio.NewScanner(c.conn)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("failed to read batch response: %w", err)
+		}
+		return nil, fmt.Errorf("connection closed without response")
+	}
+
+	var rpcResp any
+	if err := json.Unmarshal(scanner.Bytes(), &rpcResp); err != nil {
+		return nil, fmt.Errorf("failed to decode batch response: %w", err)
+	}
+
+	return rpcResp, nil
+}
+
 // Notify sends a JSON-RPC notification over TCP.
 func (c *TCPClient) Notify(ctx context.Context, req *Request) error {
 	if deadline, ok := ctx.Deadline(); ok {
