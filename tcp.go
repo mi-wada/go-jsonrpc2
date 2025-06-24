@@ -14,7 +14,6 @@ type TCPClient struct {
 }
 
 // NewTCPClient creates a new [TCPClient].
-// The caller is responsible for establishing the connection and closing it when done.
 func NewTCPClient(conn net.Conn) *TCPClient {
 	return &TCPClient{
 		conn: conn,
