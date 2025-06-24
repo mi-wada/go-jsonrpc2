@@ -13,12 +13,12 @@ import (
 	"github.com/mi-wada/go-jsonrpc2"
 )
 
-type AddParams struct {
+type addParams struct {
 	A int `json:"a"`
 	B int `json:"b"`
 }
 
-type SubtractParams struct {
+type subtractParams struct {
 	A int `json:"a"`
 	B int `json:"b"`
 }
@@ -35,7 +35,7 @@ func handleRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 
 	switch req.Method {
 	case "add":
-		var params AddParams
+		var params addParams
 		if req.Params != nil {
 			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
 				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
@@ -46,7 +46,7 @@ func handleRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 			err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
 		}
 	case "subtract":
-		var params SubtractParams
+		var params subtractParams
 		if req.Params != nil {
 			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
 				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
