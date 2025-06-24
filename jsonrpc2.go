@@ -163,3 +163,14 @@ type Client interface {
 	// Notify sends a JSON-RPC 2.0 notification (no response expected).
 	Notify(ctx context.Context, req *Request) error
 }
+
+// Handler is a function type that processes a JSON-RPC request and returns a response.
+type Handler = func(ctx context.Context, req *Request) *Response
+
+// Server is an interface for handling JSON-RPC 2.0 requests.
+type Server interface {
+	// Register registers a handler for a specific method.
+	Register(method string, handler Handler)
+	// Run starts the server and listens for incoming requests.
+	Run(ctx context.Context) error
+}

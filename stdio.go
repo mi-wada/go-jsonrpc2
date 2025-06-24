@@ -8,8 +8,7 @@ import (
 	"os"
 )
 
-type Handler = func(ctx context.Context, req *Request) *Response
-
+// StdioServer is a JSON-RPC 2.0 server that reads requests from standard input and writes responses to standard output.
 type StdioServer struct {
 	handlers map[string]Handler
 }
@@ -20,6 +19,8 @@ func NewStdioServer() *StdioServer {
 		handlers: make(map[string]Handler),
 	}
 }
+
+var _ Server = (*StdioServer)(nil)
 
 // Register registers a handler for a specific method.
 func (s *StdioServer) Register(method string, handler Handler) {
