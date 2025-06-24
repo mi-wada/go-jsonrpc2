@@ -22,7 +22,6 @@ jobs:
           - macos-latest
           - windows-latest
         go:
-          - '1.16'
           - '1.23'
           - '1.24'
     steps:
