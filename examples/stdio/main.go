@@ -9,12 +9,22 @@ import (
 	"github.com/mi-wada/go-jsonrpc2"
 )
 
-type addParams struct {
-	A int `json:"a"`
-	B int `json:"b"`
+func main() {
+	log.SetOutput(os.Stderr)
+
+	// Create and configure the stdio server
+	server := jsonrpc2.NewStdioServer()
+	server.Register("add", addHandler)
+	server.Register("subtract", subtractHandler)
+
+	// Run the server
+	ctx := context.Background()
+	if err := server.Run(ctx); err != nil {
+		log.Printf("Server error: %v", err)
+	}
 }
 
-type subtractParams struct {
+type addParams struct {
 	A int `json:"a"`
 	B int `json:"b"`
 }
@@ -34,6 +44,11 @@ func addHandler(ctx context.Context, req *jsonrpc2.Request) *jsonrpc2.Response {
 	return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
 }
 
+type subtractParams struct {
+	A int `json:"a"`
+	B int `json:"b"`
+}
+
 func subtractHandler(ctx context.Context, req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.Params == nil {
 		jsonErr := jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
@@ -46,19 +61,4 @@ func subtractHandler(ctx context.Context, req *jsonrpc2.Request) *jsonrpc2.Respo
 	}
 	result := params.A - params.B
 	return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
-}
-
-func main() {
-	log.SetOutput(os.Stderr) // Set log output to stderr
-
-	// Create and configure the stdio server
-	server := jsonrpc2.NewStdioServer()
-	server.Register("add", addHandler)
-	server.Register("subtract", subtractHandler)
-
-	// Run the server
-	ctx := context.Background()
-	if err := server.Run(ctx); err != nil {
-		log.Printf("Server error: %v", err)
-	}
 }
