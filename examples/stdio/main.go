@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"context"
 	"encoding/json"
 	"log"
 	"os"
@@ -19,82 +19,46 @@ type subtractParams struct {
 	B int `json:"b"`
 }
 
-func handleRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
-	if req.JSONRPC != "2.0" {
-		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
-		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
+func addHandler(ctx context.Context, req *jsonrpc2.Request) *jsonrpc2.Response {
+	if req.Params == nil {
+		jsonErr := jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*jsonErr))
 	}
 
-	var result any
-	var err *jsonrpc2.Error
-
-	switch req.Method {
-	case "add":
-		var params addParams
-		if req.Params != nil {
-			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
-				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-			} else {
-				result = params.A + params.B
-			}
-		} else {
-			err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-		}
-	case "subtract":
-		var params subtractParams
-		if req.Params != nil {
-			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
-				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-			} else {
-				result = params.A - params.B
-			}
-		} else {
-			err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-		}
-	default:
-		err = jsonrpc2.NewError(jsonrpc2.MethodNotFound, "Method not found")
+	var params addParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		jsonErr := jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*jsonErr))
 	}
+	result := params.A + params.B
+	return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
+}
 
-	if err != nil {
-		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
-	} else {
-		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
+func subtractHandler(ctx context.Context, req *jsonrpc2.Request) *jsonrpc2.Response {
+	if req.Params == nil {
+		jsonErr := jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*jsonErr))
 	}
+	var params subtractParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		jsonErr := jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*jsonErr))
+	}
+	result := params.A - params.B
+	return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
 }
 
 func main() {
 	log.SetOutput(os.Stderr) // Set log output to stderr
 
-	scanner := bufio.NewScanner(os.Stdin)
-	encoder := json.NewEncoder(os.Stdout)
+	// Create and configure the stdio server
+	server := jsonrpc2.NewStdioServer()
+	server.Register("add", addHandler)
+	server.Register("subtract", subtractHandler)
 
-	log.Println("JSON-RPC 2.0 stdio server started")
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			continue
-		}
-
-		req, err := jsonrpc2.UnmarshalRequest(line)
-		if err != nil {
-			parseErr := jsonrpc2.NewError(jsonrpc2.ParseError, "Parse error")
-			response := jsonrpc2.NewResponse(nil, jsonrpc2.WithError(*parseErr))
-			if encErr := encoder.Encode(response); encErr != nil {
-				log.Printf("Error encoding parse error response: %v", encErr)
-			}
-			continue
-		}
-
-		response := handleRequest(req)
-		if err := encoder.Encode(response); err != nil {
-			log.Printf("Error encoding response: %v", err)
-		}
+	// Run the server
+	ctx := context.Background()
+	if err := server.Run(ctx); err != nil {
+		log.Printf("Server error: %v", err)
 	}
-
-	if err := scanner.Err(); err != nil {
-		log.Printf("Scanner error: %v", err)
-	}
-
-	log.Println("JSON-RPC 2.0 stdio server stopped")
 }
