@@ -5,7 +5,7 @@ Package go-jsonrpc2 provides structs and functions for working with [JSON-RPC 2.
 ## Install
 
 ```shell
-go get github.com/mi-wada/go-jsonrpc2
+go get github.com/mi-wada/go-jsonrpc2@latest
 ```
 
 ## Usage
