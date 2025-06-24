@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -119,115 +117,6 @@ func runServer() {
 	}
 }
 
-// TCP Transport Layer - Client Implementation
-func runClient() {
-	conn, err := net.Dial("tcp", "localhost:8081")
-	if err != nil {
-		log.Fatal("Error connecting to server:", err)
-	}
-	defer conn.Close()
-
-	// Create TCPClient using the connection
-	client := jsonrpc2.NewTCPClient(conn)
-	ctx := context.Background()
-
-	fmt.Println("JSON-RPC 2.0 TCP Client Example")
-	fmt.Println("================================")
-
-	// Test add method
-	fmt.Println("\n1. Testing add method (7 + 2):")
-	addParams := AddParams{A: 7, B: 2}
-	req, err := jsonrpc2.NewRequest("add", jsonrpc2.WithParams(addParams), jsonrpc2.WithID(1))
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-	} else {
-		resp, err := client.Call(ctx, req)
-		if err != nil {
-			log.Printf("Error calling add: %v", err)
-		} else {
-			if resp.Error != nil {
-				fmt.Printf("RPC Error: %+v\n", resp.Error)
-			} else {
-				var result int
-				resultBytes, _ := json.Marshal(resp.Result)
-				json.Unmarshal(resultBytes, &result)
-				fmt.Printf("Result: %d\n", result)
-			}
-		}
-	}
-
-	// Test subtract method
-	fmt.Println("\n2. Testing subtract method (15 - 6):")
-	subtractParams := SubtractParams{A: 15, B: 6}
-	req, err = jsonrpc2.NewRequest("subtract", jsonrpc2.WithParams(subtractParams), jsonrpc2.WithID(2))
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-	} else {
-		resp, err := client.Call(ctx, req)
-		if err != nil {
-			log.Printf("Error calling subtract: %v", err)
-		} else {
-			if resp.Error != nil {
-				fmt.Printf("RPC Error: %+v\n", resp.Error)
-			} else {
-				var result int
-				resultBytes, _ := json.Marshal(resp.Result)
-				json.Unmarshal(resultBytes, &result)
-				fmt.Printf("Result: %d\n", result)
-			}
-		}
-	}
-
-	// Test invalid method
-	fmt.Println("\n3. Testing invalid method:")
-	req, err = jsonrpc2.NewRequest("multiply", jsonrpc2.WithID(3))
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-	} else {
-		resp, err := client.Call(ctx, req)
-		if err != nil {
-			log.Printf("Error calling invalid method: %v", err)
-		} else {
-			if resp.Error != nil {
-				fmt.Printf("RPC Error: %+v\n", resp.Error)
-			} else {
-				fmt.Printf("Unexpected success: %+v\n", resp)
-			}
-		}
-	}
-
-	// Test invalid params
-	fmt.Println("\n4. Testing invalid params:")
-	req, err = jsonrpc2.NewRequest("add", jsonrpc2.WithParams("invalid"), jsonrpc2.WithID(4))
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-	} else {
-		resp, err := client.Call(ctx, req)
-		if err != nil {
-			log.Printf("Error calling with invalid params: %v", err)
-		} else {
-			if resp.Error != nil {
-				fmt.Printf("RPC Error: %+v\n", resp.Error)
-			} else {
-				fmt.Printf("Unexpected success: %+v\n", resp)
-			}
-		}
-	}
-}
-
 func main() {
-	var mode string
-	flag.StringVar(&mode, "mode", "server", "Mode: server or client")
-	flag.StringVar(&mode, "m", "server", "Mode: server or client (shorthand)")
-	flag.Parse()
-
-	switch mode {
-	case "server":
-		runServer()
-	case "client":
-		runClient()
-	default:
-		fmt.Printf("Usage: %s -mode server|client\n", "go run examples/tcp/main.go")
-		flag.PrintDefaults()
-	}
+	runServer()
 }
