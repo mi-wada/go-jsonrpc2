@@ -73,12 +73,12 @@ func handleConnection(conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 
 	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
+		line := scanner.Bytes()
+		if len(line) == 0 {
 			continue
 		}
 
-		req, err := jsonrpc2.UnmarshalRequest([]byte(line))
+		req, err := jsonrpc2.UnmarshalRequest(line)
 		if err != nil {
 			parseErr := jsonrpc2.NewError(jsonrpc2.ParseError, "Parse error")
 			response := jsonrpc2.NewResponse(nil, jsonrpc2.WithError(*parseErr))
