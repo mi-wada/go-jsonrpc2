@@ -4,27 +4,13 @@ A simple standard input/output based JSON-RPC 2.0 server implementation.
 
 ## Usage
 
-### Server Mode (default)
-
 Start the server:
 
 ```shell
 go run main.go
-# or explicitly
-go run main.go -mode server
 ```
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout. Logs are written to stderr.
-
-### Client Mode
-
-Run the demonstration client:
-
-```shell
-go run main.go -mode client
-```
-
-This shows example requests and expected responses for testing purposes.
 
 ## Example Requests
 
