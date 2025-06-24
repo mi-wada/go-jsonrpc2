@@ -1,6 +1,6 @@
 # go-jsonrpc2
 
-Package jsonrpc2 provides structs and functions for working with [JSON-RPC 2.0 protocol](https://www.jsonrpc.org/specification).
+Package go-jsonrpc2 provides structs and functions for working with [JSON-RPC 2.0 protocol](https://www.jsonrpc.org/specification).
 
 ## Install
 
