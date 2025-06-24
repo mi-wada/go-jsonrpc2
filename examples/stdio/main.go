@@ -19,7 +19,7 @@ type SubtractParams struct {
 	B int `json:"b"`
 }
 
-func processRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
+func handleRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
 		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
 		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
@@ -86,7 +86,7 @@ func main() {
 			continue
 		}
 
-		response := processRequest(req)
+		response := handleRequest(req)
 		if err := encoder.Encode(response); err != nil {
 			log.Printf("Error encoding response: %v", err)
 		}

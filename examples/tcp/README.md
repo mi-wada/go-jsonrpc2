@@ -4,34 +4,32 @@ A simple TCP-based JSON-RPC 2.0 server implementation.
 
 ## Usage
 
-Start the server:
+### Start the server
 
 ```shell
-go run main.go
+go run main.go -m server
 ```
 
 The server listens on port 8081 and supports `add` and `subtract` methods.
 
-## Example Requests
+### Send requests using the built-in client
 
-Send these JSON requests via TCP connection to `localhost:8081`:
-
-### Add method
+#### Add method
 
 ```bash
-echo '{"jsonrpc":"2.0","method":"add","params":{"a":7,"b":2},"id":1}' | nc localhost 8081
+go run main.go -m client -d '{"jsonrpc":"2.0","method":"add","params":{"a":5,"b":3},"id":1}'
 ```
 
 Expected response:
 
 ```json
-{"jsonrpc":"2.0","result":9,"id":1}
+{"jsonrpc":"2.0","result":8,"id":1}
 ```
 
-### Subtract method
+#### Subtract method
 
 ```bash
-echo '{"jsonrpc":"2.0","method":"subtract","params":{"a":15,"b":6},"id":2}' | nc localhost 8081
+go run main.go -m client -d '{"jsonrpc":"2.0","method":"subtract","params":{"a":15,"b":6},"id":2}'
 ```
 
 Expected response:
@@ -40,10 +38,10 @@ Expected response:
 {"jsonrpc":"2.0","result":9,"id":2}
 ```
 
-### Invalid method
+#### Invalid method
 
 ```bash
-echo '{"jsonrpc":"2.0","method":"multiply","params":{"a":2,"b":3},"id":3}' | nc localhost 8081
+go run main.go -m client -d '{"jsonrpc":"2.0","method":"multiply","params":{"a":2,"b":3},"id":3}'
 ```
 
 Expected response:
@@ -52,7 +50,15 @@ Expected response:
 {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found"},"id":3}
 ```
 
-### Testing with telnet
+### Alternative: Using nc (netcat)
+
+You can also test using nc:
+
+```bash
+echo '{"jsonrpc":"2.0","method":"add","params":{"a":5,"b":3},"id":1}' | nc localhost 8081
+```
+
+### Alternative: Using telnet
 
 You can also test using telnet:
 

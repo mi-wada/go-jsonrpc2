@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/mi-wada/go-jsonrpc2"
 )
@@ -20,8 +23,8 @@ type SubtractParams struct {
 	B int `json:"b"`
 }
 
-// processRequest handles JSON-RPC request processing (common logic)
-func processRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
+// handleRequest handles JSON-RPC request processing (common logic)
+func handleRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
 		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
 		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
@@ -86,7 +89,7 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		response := processRequest(req)
+		response := handleRequest(req)
 		if encErr := encoder.Encode(response); encErr != nil {
 			log.Printf("Error encoding response: %v", encErr)
 			break
@@ -117,6 +120,45 @@ func runServer() {
 	}
 }
 
+func runClient(data string) {
+	conn, err := net.Dial("tcp", "localhost:8081")
+	if err != nil {
+		log.Fatal("Error connecting to server:", err)
+	}
+	defer conn.Close()
+
+	client := jsonrpc2.NewTCPClient(conn)
+
+	var req jsonrpc2.Request
+	if err := json.Unmarshal([]byte(data), &req); err != nil {
+		log.Fatal("Error parsing request data:", err)
+	}
+
+	resp, err := client.Call(context.Background(), &req)
+	if err != nil {
+		log.Fatal("Error calling RPC:", err)
+	}
+
+	respData, err := json.Marshal(resp)
+	if err != nil {
+		log.Fatal("Error marshaling response:", err)
+	}
+
+	fmt.Println(string(respData))
+}
+
 func main() {
-	runServer()
+	var mode = flag.String("m", "server", "Mode: server or client")
+	var data = flag.String("d", "", "JSON-RPC request data (for client mode)")
+	flag.Parse()
+
+	if *mode == "client" {
+		if *data == "" {
+			fmt.Println("Usage: go run main.go -m client -d '<json_data>'")
+			os.Exit(1)
+		}
+		runClient(*data)
+	} else {
+		runServer()
+	}
 }
