@@ -18,5 +18,5 @@ MIT
 
 ## ToDo
 
-- [ ] テスト追加
-- [ ] HTTPに関してはHandlerとしても使えるようにしたら便利だと思う。Server.HTTPHandler()でhttp.Handlerを返す感じ。
+- [ ] Add tests
+- [ ] It would be useful if HTTP could also be used as a Handler. For example, Server.HTTPHandler() could return an http.Handler.
