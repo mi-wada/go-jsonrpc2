@@ -3,6 +3,7 @@
 package jsonrpc2
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -58,16 +59,6 @@ func WithID(id any) NewRequestOption {
 	}
 }
 
-var _ json.Marshaler = (*Request)(nil)
-
-// MarshalJSON implements the [json.Marshaler] interface.
-func (r *Request) MarshalJSON() ([]byte, error) {
-	// Uses an alias type to prevent infinite recursion during JSON marshaling.
-	// See: https://golang.org/pkg/encoding/json/#Marshal
-	type Alias Request
-	return json.Marshal((*Alias)(r))
-}
-
 // Response represents a JSON-RPC 2.0 response object.
 type Response struct {
 	JSONRPC string `json:"jsonrpc"`          // The version of the JSON-RPC protocol. It must be "2.0".
@@ -104,16 +95,6 @@ func WithError(err Error) NewResponseOption {
 	return func(r *Response) {
 		r.Error = &err
 	}
-}
-
-var _ json.Marshaler = (*Response)(nil)
-
-// MarshalJSON implements the [json.Marshaler] interface.
-func (r *Response) MarshalJSON() ([]byte, error) {
-	// Uses an alias type to prevent infinite recursion during JSON marshaling.
-	// See: https://golang.org/pkg/encoding/json/#Marshal
-	type Alias Response
-	return json.Marshal((*Alias)(r))
 }
 
 // ErrorCode represents the error codes as defined in the JSON-RPC 2.0 specification.
@@ -156,4 +137,10 @@ func WithData(data any) NewErrorOption {
 	return func(e *Error) {
 		e.Data = data
 	}
+}
+
+// Client is an interface for making JSON-RPC 2.0 requests.
+type Client interface {
+	// Call executes a JSON-RPC 2.0 request.
+	Call(ctx context.Context, req *Request) (*Response, error)
 }
