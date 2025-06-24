@@ -129,12 +129,12 @@ func runClient(data string) {
 
 	client := jsonrpc2.NewTCPClient(conn)
 
-	var req jsonrpc2.Request
-	if err := json.Unmarshal([]byte(data), &req); err != nil {
+	req, err := jsonrpc2.UnmarshalRequest([]byte(data))
+	if err != nil {
 		log.Fatal("Error parsing request data:", err)
 	}
 
-	resp, err := client.Call(context.Background(), &req)
+	resp, err := client.Call(context.Background(), req)
 	if err != nil {
 		log.Fatal("Error calling RPC:", err)
 	}

@@ -96,12 +96,12 @@ func runServer() {
 func runClient(data string) {
 	client := jsonrpc2.NewHTTPClient("http://localhost:8080/rpc", nil)
 
-	var req jsonrpc2.Request
-	if err := json.Unmarshal([]byte(data), &req); err != nil {
+	req, err := jsonrpc2.UnmarshalRequest([]byte(data))
+	if err != nil {
 		log.Fatal("Error parsing request data:", err)
 	}
 
-	resp, err := client.Call(context.Background(), &req)
+	resp, err := client.Call(context.Background(), req)
 	if err != nil {
 		log.Fatal("Error calling RPC:", err)
 	}
