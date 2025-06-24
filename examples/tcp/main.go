@@ -23,7 +23,7 @@ type SubtractParams struct {
 }
 
 // processRequest handles JSON-RPC request processing (common logic)
-func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
+func processRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
 		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
 		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
@@ -78,9 +78,13 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		var req jsonrpc2.Request
-		if err := json.Unmarshal([]byte(line), &req); err != nil {
-			sendError(encoder, nil, int(jsonrpc2.ParseError), "Parse error", nil)
+		req, err := jsonrpc2.UnmarshalRequest([]byte(line))
+		if err != nil {
+			parseErr := jsonrpc2.NewError(jsonrpc2.ParseError, "Parse error")
+			response := jsonrpc2.NewResponse(nil, jsonrpc2.WithError(*parseErr))
+			if encErr := encoder.Encode(response); encErr != nil {
+				log.Printf("Error encoding parse error response: %v", encErr)
+			}
 			continue
 		}
 
@@ -94,18 +98,6 @@ func handleConnection(conn net.Conn) {
 	if err := scanner.Err(); err != nil {
 		log.Printf("Scanner error: %v", err)
 	}
-}
-
-func sendError(encoder *json.Encoder, id any, code int, message string, data any) {
-	var err *jsonrpc2.Error
-	if data != nil {
-		err = jsonrpc2.NewError(jsonrpc2.ErrorCode(code), message, jsonrpc2.WithData(data))
-	} else {
-		err = jsonrpc2.NewError(jsonrpc2.ErrorCode(code), message)
-	}
-
-	response := jsonrpc2.NewResponse(id, jsonrpc2.WithError(*err))
-	encoder.Encode(response)
 }
 
 func runServer() {

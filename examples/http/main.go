@@ -22,7 +22,7 @@ type SubtractParams struct {
 }
 
 // processRequest handles JSON-RPC request processing (common logic)
-func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
+func processRequest(req *jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
 		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
 		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
@@ -66,7 +66,7 @@ func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
 }
 
 // HTTP Transport Layer - Server Implementation
-func handleRPC(w http.ResponseWriter, r *http.Request) {
+func handleConnection(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -74,30 +74,20 @@ func handleRPC(w http.ResponseWriter, r *http.Request) {
 
 	var req jsonrpc2.Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendError(w, nil, int(jsonrpc2.ParseError), "Parse error", nil)
+		parseErr := jsonrpc2.NewError(jsonrpc2.ParseError, "Parse error")
+		response := jsonrpc2.NewResponse(nil, jsonrpc2.WithError(*parseErr))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	response := processRequest(req)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func sendError(w http.ResponseWriter, id any, code int, message string, data any) {
-	var err *jsonrpc2.Error
-	if data != nil {
-		err = jsonrpc2.NewError(jsonrpc2.ErrorCode(code), message, jsonrpc2.WithData(data))
-	} else {
-		err = jsonrpc2.NewError(jsonrpc2.ErrorCode(code), message)
-	}
-
-	response := jsonrpc2.NewResponse(id, jsonrpc2.WithError(*err))
+	response := processRequest(&req)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func runServer() {
-	http.HandleFunc("/rpc", handleRPC)
+	http.HandleFunc("/rpc", handleConnection)
 	fmt.Println("JSON-RPC 2.0 HTTP server starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
