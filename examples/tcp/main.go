@@ -21,6 +21,51 @@ type SubtractParams struct {
 	B int `json:"b"`
 }
 
+// processRequest handles JSON-RPC request processing (common logic)
+func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
+	if req.JSONRPC != "2.0" {
+		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
+	}
+
+	var result any
+	var err *jsonrpc2.Error
+
+	switch req.Method {
+	case "add":
+		var params AddParams
+		if req.Params != nil {
+			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
+				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+			} else {
+				result = params.A + params.B
+			}
+		} else {
+			err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		}
+	case "subtract":
+		var params SubtractParams
+		if req.Params != nil {
+			if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
+				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+			} else {
+				result = params.A - params.B
+			}
+		} else {
+			err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
+		}
+	default:
+		err = jsonrpc2.NewError(jsonrpc2.MethodNotFound, "Method not found")
+	}
+
+	if err != nil {
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
+	} else {
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
+	}
+}
+
+// TCP Transport Layer - Server Implementation
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
@@ -38,48 +83,7 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if req.JSONRPC != "2.0" {
-			sendError(encoder, req.ID, int(jsonrpc2.InvalidRequest), "Invalid Request", nil)
-			continue
-		}
-
-		var result any
-		var err *jsonrpc2.Error
-
-		switch req.Method {
-		case "add":
-			var params AddParams
-			if req.Params != nil {
-				if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
-					err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-				} else {
-					result = params.A + params.B
-				}
-			} else {
-				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-			}
-		case "subtract":
-			var params SubtractParams
-			if req.Params != nil {
-				if jsonErr := json.Unmarshal(req.Params, &params); jsonErr != nil {
-					err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-				} else {
-					result = params.A - params.B
-				}
-			} else {
-				err = jsonrpc2.NewError(jsonrpc2.InvalidParams, "Invalid params")
-			}
-		default:
-			err = jsonrpc2.NewError(jsonrpc2.MethodNotFound, "Method not found")
-		}
-
-		var response *jsonrpc2.Response
-		if err != nil {
-			response = jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
-		} else {
-			response = jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
-		}
-
+		response := processRequest(req)
 		if encErr := encoder.Encode(response); encErr != nil {
 			log.Printf("Error encoding response: %v", encErr)
 			break
@@ -122,6 +126,7 @@ func runServer() {
 	}
 }
 
+// TCP Transport Layer - Client Implementation
 func callRPC(conn net.Conn, method string, params any, id any) (*jsonrpc2.Response, error) {
 	req, err := jsonrpc2.NewRequest(method, jsonrpc2.WithParams(params), jsonrpc2.WithID(id))
 	if err != nil {

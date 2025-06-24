@@ -22,21 +22,11 @@ type SubtractParams struct {
 	B int `json:"b"`
 }
 
-func handleRPC(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req jsonrpc2.Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendError(w, nil, int(jsonrpc2.ParseError), "Parse error", nil)
-		return
-	}
-
+// processRequest handles JSON-RPC request processing (common logic)
+func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
 	if req.JSONRPC != "2.0" {
-		sendError(w, req.ID, int(jsonrpc2.InvalidRequest), "Invalid Request", nil)
-		return
+		err := jsonrpc2.NewError(jsonrpc2.InvalidRequest, "Invalid Request")
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
 	}
 
 	var result any
@@ -69,13 +59,27 @@ func handleRPC(w http.ResponseWriter, r *http.Request) {
 		err = jsonrpc2.NewError(jsonrpc2.MethodNotFound, "Method not found")
 	}
 
-	var response *jsonrpc2.Response
 	if err != nil {
-		response = jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithError(*err))
 	} else {
-		response = jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
+		return jsonrpc2.NewResponse(req.ID, jsonrpc2.WithResult(result))
+	}
+}
+
+// HTTP Transport Layer - Server Implementation
+func handleRPC(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
+	var req jsonrpc2.Request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendError(w, nil, int(jsonrpc2.ParseError), "Parse error", nil)
+		return
+	}
+
+	response := processRequest(req)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -99,6 +103,7 @@ func runServer() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+// HTTP Transport Layer - Client Implementation
 func callRPC(url string, method string, params any, id any) (*jsonrpc2.Response, error) {
 	req, err := jsonrpc2.NewRequest(method, jsonrpc2.WithParams(params), jsonrpc2.WithID(id))
 	if err != nil {

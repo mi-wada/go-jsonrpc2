@@ -1,3 +1,5 @@
+// Package jsonrpc2 provides structures and functions for working with JSON-RPC 2.0 protocol.
+// https://www.jsonrpc.org/specification
 package jsonrpc2
 
 import (
@@ -5,49 +7,7 @@ import (
 	"fmt"
 )
 
-const JSONRPC = "2.0"
-
-// ErrorCode represents the error codes as defined in the JSON-RPC 2.0 specification.
-// For more details, see: https://www.jsonrpc.org/specification#error_object
-type ErrorCode int
-
-const (
-	ParseError     ErrorCode = -32700 // Invalid JSON was received by the server.
-	InvalidRequest ErrorCode = -32600 // The JSON sent is not a valid Request object.
-	MethodNotFound ErrorCode = -32601 // The method does not exist / is not available.
-	InvalidParams  ErrorCode = -32602 // Invalid method parameter(s).
-	InternalError  ErrorCode = -32603 // Internal JSON-RPC error.
-)
-
-// Error represents a JSON-RPC 2.0 error object.
-type Error struct {
-	Code    ErrorCode `json:"code"`           // A number indicating the error type that occurred
-	Message string    `json:"message"`        // A short description of the error
-	Data    any       `json:"data,omitempty"` // Additional information about the error
-}
-
-// NewError creates a new [Error].
-// If you want to set the Data field, use the [WithData] option.
-func NewError(code ErrorCode, message string, opts ...NewErrorOption) *Error {
-	err := &Error{
-		Code:    code,
-		Message: message,
-	}
-	for _, opt := range opts {
-		opt(err)
-	}
-	return err
-}
-
-// NewErrorOption defines a function type for setting optional fields in Error.
-type NewErrorOption func(*Error)
-
-// WithData sets the Data field of an Error.
-func WithData(data any) NewErrorOption {
-	return func(e *Error) {
-		e.Data = data
-	}
-}
+const JSONRPC = "2.0" // JSONRPC is the version of the JSON-RPC protocol.
 
 // Request represents a JSON-RPC 2.0 request object.
 type Request struct {
@@ -98,6 +58,16 @@ func WithID(id any) NewRequestOption {
 	}
 }
 
+var _ json.Marshaler = (*Request)(nil)
+
+// MarshalJSON implements the [json.Marshaler] interface.
+func (r *Request) MarshalJSON() ([]byte, error) {
+	// Uses an alias type to prevent infinite recursion during JSON marshaling.
+	// See: https://golang.org/pkg/encoding/json/#Marshal
+	type Alias Request
+	return json.Marshal((*Alias)(r))
+}
+
 // Response represents a JSON-RPC 2.0 response object.
 type Response struct {
 	JSONRPC string `json:"jsonrpc"`          // The version of the JSON-RPC protocol. It must be "2.0".
@@ -133,5 +103,57 @@ func WithResult(result any) NewResponseOption {
 func WithError(err Error) NewResponseOption {
 	return func(r *Response) {
 		r.Error = &err
+	}
+}
+
+var _ json.Marshaler = (*Response)(nil)
+
+// MarshalJSON implements the [json.Marshaler] interface.
+func (r *Response) MarshalJSON() ([]byte, error) {
+	// Uses an alias type to prevent infinite recursion during JSON marshaling.
+	// See: https://golang.org/pkg/encoding/json/#Marshal
+	type Alias Response
+	return json.Marshal((*Alias)(r))
+}
+
+// ErrorCode represents the error codes as defined in the JSON-RPC 2.0 specification.
+// For more details, see: https://www.jsonrpc.org/specification#error_object
+type ErrorCode int
+
+const (
+	ParseError     ErrorCode = -32700 // Invalid JSON was received by the server.
+	InvalidRequest ErrorCode = -32600 // The JSON sent is not a valid Request object.
+	MethodNotFound ErrorCode = -32601 // The method does not exist / is not available.
+	InvalidParams  ErrorCode = -32602 // Invalid method parameter(s).
+	InternalError  ErrorCode = -32603 // Internal JSON-RPC error.
+)
+
+// Error represents a JSON-RPC 2.0 error object.
+type Error struct {
+	Code    ErrorCode `json:"code"`           // A number indicating the error type that occurred
+	Message string    `json:"message"`        // A short description of the error
+	Data    any       `json:"data,omitempty"` // Additional information about the error
+}
+
+// NewError creates a new [Error].
+// If you want to set the Data field, use the [WithData] option.
+func NewError(code ErrorCode, message string, opts ...NewErrorOption) *Error {
+	err := &Error{
+		Code:    code,
+		Message: message,
+	}
+	for _, opt := range opts {
+		opt(err)
+	}
+	return err
+}
+
+// NewErrorOption defines a function type for setting optional fields in Error.
+type NewErrorOption func(*Error)
+
+// WithData sets the Data field of an Error.
+func WithData(data any) NewErrorOption {
+	return func(e *Error) {
+		e.Data = data
 	}
 }
