@@ -27,6 +27,7 @@ func NewHTTPClient(endpoint string, client *http.Client) *HTTPClient {
 
 var _ Client = (*HTTPClient)(nil)
 
+// Call sends a JSON-RPC request over HTTP and returns the response.
 func (c *HTTPClient) Call(ctx context.Context, req *Request) (*Response, error) {
 	body, err := json.Marshal(req)
 	if err != nil {

@@ -64,33 +64,6 @@ func processRequest(req jsonrpc2.Request) *jsonrpc2.Response {
 	}
 }
 
-// callRPC sends a JSON-RPC request via stdin/stdout and returns the response
-func callRPC(method string, params any, id any) (*jsonrpc2.Response, error) {
-	req, err := jsonrpc2.NewRequest(method, jsonrpc2.WithParams(params), jsonrpc2.WithID(id))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Send request to stdout
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(req); err != nil {
-		return nil, err
-	}
-
-	// Read response from stdin
-	scanner := bufio.NewScanner(os.Stdin)
-	if !scanner.Scan() {
-		return nil, fmt.Errorf("no response received")
-	}
-
-	var resp jsonrpc2.Response
-	if err := json.Unmarshal(scanner.Bytes(), &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
-}
-
 func runServer() {
 	log.SetOutput(os.Stderr) // ログはstderrに出力
 
