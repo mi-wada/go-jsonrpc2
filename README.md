@@ -1,6 +1,6 @@
 # go-jsonrpc2
 
-Package go-jsonrpc2 provides structs and functions for working with [JSON-RPC 2.0 protocol](https://www.jsonrpc.org/specification).
+Package go-jsonrpc2 provides server and client implementations for the [JSON-RPC 2.0 protocol](https://www.jsonrpc.org/specification).
 
 ## Install
 
@@ -21,4 +21,4 @@ MIT
 - [ ] Add tests
 - [ ] It would be useful if HTTP could also be used as a Handler. For example, Server.HTTPHandler() could return an http.Handler.
 - [ ] maybe it's good to add NextID() func to client. Generate random or sequential ID.
-- [ ] Consider loggind strategy at server
+- [ ] Consider logging strategy at server
