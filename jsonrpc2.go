@@ -157,4 +157,6 @@ func (e Error) Error() string {
 type Client interface {
 	// Call executes a JSON-RPC 2.0 request.
 	Call(ctx context.Context, req *Request) (*Response, error)
+	// Notify sends a JSON-RPC 2.0 notification request without expecting a response.
+	Notify(ctx context.Context, req *Request) error
 }

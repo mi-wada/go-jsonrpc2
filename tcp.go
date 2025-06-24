@@ -54,3 +54,23 @@ func (c *TCPClient) Call(ctx context.Context, req *Request) (*Response, error) {
 
 	return &rpcResp, nil
 }
+
+// Notify sends a JSON-RPC notification over TCP.
+func (c *TCPClient) Notify(ctx context.Context, req *Request) error {
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := c.conn.SetDeadline(deadline); err != nil {
+			return fmt.Errorf("failed to set connection deadline: %w", err)
+		}
+	}
+
+	reqData, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	if _, err := c.conn.Write(append(reqData, '\n')); err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+
+	return nil
+}
