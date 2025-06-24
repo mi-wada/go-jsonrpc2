@@ -107,3 +107,88 @@ func (c *TCPClient) Notify(ctx context.Context, req *Request) error {
 
 	return nil
 }
+
+// TCPServer is a JSON-RPC 2.0 server that handles TCP connections.
+type TCPServer struct {
+	handlers map[string]Handler
+	addr     string
+}
+
+// NewTCPServer creates a new [TCPServer] with an empty handlers.
+func NewTCPServer(addr string) *TCPServer {
+	return &TCPServer{
+		handlers: make(map[string]Handler),
+		addr:     addr,
+	}
+}
+
+var _ Server = (*TCPServer)(nil)
+
+// Register registers a handler for a specific method.
+func (s *TCPServer) Register(method string, handler Handler) {
+	s.handlers[method] = handler
+}
+
+// Run starts the TCP server and listens for incoming connections.
+func (s *TCPServer) Run(ctx context.Context) error {
+	listener, err := net.Listen("tcp", s.addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", s.addr, err)
+	}
+	defer listener.Close()
+
+	go func() {
+		<-ctx.Done()
+		listener.Close()
+	}()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				continue
+			}
+		}
+		go s.handleConnection(ctx, conn)
+	}
+}
+
+// handleConnection handles a single TCP connection.
+func (s *TCPServer) handleConnection(ctx context.Context, conn net.Conn) {
+	defer conn.Close()
+	scanner := bufio.NewScanner(conn)
+	encoder := json.NewEncoder(conn)
+
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		var req Request
+		if err := json.Unmarshal(line, &req); err != nil {
+			errorResp := NewError(ParseError, "Parse error")
+			resp := NewResponse(nil, WithError(*errorResp))
+			encoder.Encode(resp)
+			continue
+		}
+
+		if handler, exists := s.handlers[req.Method]; exists {
+			resp := handler(ctx, &req)
+			encoder.Encode(resp)
+		} else {
+			err := NewError(MethodNotFound, "Method not found")
+			resp := NewResponse(req.ID, WithError(*err))
+			encoder.Encode(resp)
+		}
+	}
+}

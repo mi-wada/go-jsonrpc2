@@ -15,3 +15,8 @@ See the [examples](https://github.com/mi-wada/go-jsonrpc2/tree/main/examples) fo
 ## LICENSE
 
 MIT
+
+## ToDo
+
+- [ ] テスト追加
+- [ ] HTTPに関してはHandlerとしても使えるようにしたら便利だと思う。Server.HTTPHandler()でhttp.Handlerを返す感じ。
