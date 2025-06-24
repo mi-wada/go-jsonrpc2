@@ -116,3 +116,88 @@ func (c *HTTPClient) Notify(ctx context.Context, req *Request) error {
 
 	return nil
 }
+
+// HTTPServer is a JSON-RPC 2.0 server that handles HTTP requests.
+type HTTPServer struct {
+	handlers map[string]Handler
+	mux      *http.ServeMux
+	server   *http.Server
+}
+
+// NewHTTPServer creates a new [HTTPServer] with an empty handlers.
+func NewHTTPServer(addr, path string) *HTTPServer {
+	mux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}
+
+	s := &HTTPServer{
+		handlers: make(map[string]Handler),
+		mux:      mux,
+		server:   server,
+	}
+
+	// Register the JSON-RPC handler on the specified path
+	mux.HandleFunc(path, s.handleJSONRPC)
+
+	return s
+}
+
+var _ Server = (*HTTPServer)(nil)
+
+// Register registers a handler for a specific method.
+func (s *HTTPServer) Register(method string, handler Handler) {
+	s.handlers[method] = handler
+}
+
+// Run starts the HTTP server and listens for incoming requests.
+func (s *HTTPServer) Run(ctx context.Context) error {
+	go func() {
+		<-ctx.Done()
+		s.server.Shutdown(context.Background())
+	}()
+
+	return s.server.ListenAndServe()
+}
+
+// handleJSONRPC handles incoming JSON-RPC requests over HTTP.
+func (s *HTTPServer) handleJSONRPC(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	var req Request
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&req); err != nil {
+		errorResp := NewError(ParseError, "Parse error")
+		resp := NewResponse(nil, WithError(*errorResp))
+		s.writeResponse(w, resp)
+		return
+	}
+
+	if handler, exists := s.handlers[req.Method]; exists {
+		resp := handler(r.Context(), &req)
+		s.writeResponse(w, resp)
+	} else {
+		err := NewError(MethodNotFound, "Method not found")
+		resp := NewResponse(req.ID, WithError(*err))
+		s.writeResponse(w, resp)
+	}
+}
+
+// writeResponse writes a JSON-RPC response to the HTTP response writer.
+func (s *HTTPServer) writeResponse(w http.ResponseWriter, resp *Response) {
+	w.Header().Set("Content-Type", "application/json")
+
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
